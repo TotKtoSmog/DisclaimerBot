@@ -1,5 +1,4 @@
-﻿using System;
-using System.Reflection.Metadata.Ecma335;
+﻿using System.Data;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
@@ -22,8 +21,7 @@ namespace DisclaimerBot
             {
                 AllowedUpdates = new[] 
                 {
-                    UpdateType.Message, 
-                    UpdateType.ChannelPost
+                    UpdateType.Message
                 },
                 
                 ThrowPendingUpdates = true,
@@ -47,46 +45,48 @@ namespace DisclaimerBot
                 {
                     case UpdateType.Message:
                         {
-                            
-                            var message = update.Message;
-
-                            
-                            var user = message.From;
-
-                            Console.WriteLine($"{user.FirstName} ({user.Id}) написал сообщение: {message.Text}");
-
-                            
-                            var chat = message.Chat;
-                            await botClient.SendTextMessageAsync(
-                                chat.Id,
-                                "Алоо",
-                                replyToMessageId: message.MessageId 
-                                );
-                            await botClient.SendDiceAsync(chat.Id);
+                            await SendDesclaimer(_botClient, update.Message);
                             return;
-                        }
-                    case UpdateType.ChannelPost:
-                        {
-
-                            var ChannelPost = update.ChannelPost;
-
-                            var ChannelID = ChannelPost.Chat.Id;
-                            var MESSAGE_ID = ChannelPost.MessageId;
-
-                            await botClient.SendTextMessageAsync(
-                                ChannelID,
-                                "Алоо", 
-                                replyToMessageId: MESSAGE_ID 
-                                );
-
-                            return;
-
                         }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
+            }
+        }
+        
+        private static async Task SendDesclaimer(ITelegramBotClient botClient, Message message, bool isShowLog = true)
+        {
+            if (message.SenderChat != null && message.SenderChat.Type == ChatType.Channel)
+            {
+                if (isShowLog)
+                {
+                    string log = $"Канал: {message.SenderChat.Title} \nОтправитель: {message.ForwardSignature} \nВремя публикации: {message.Date.TimeOfDay} \nДата публикации: {message.Date.ToShortDateString()}\n";
+                    switch (message.Type)
+                    {
+                        case MessageType.Text:
+                            {
+                                log += $"Текст публикации {message.Text} \n";
+                                break;
+                            }
+                        default:
+                            {
+                                string text = message.Caption == null ? "Текст публикации отцуцтвует" : message.Caption;
+                                log += $"Текст публикации {text} \n";
+                                break;
+                            }
+                    }
+                    await Console.Out.WriteLineAsync(log);
+                }
+
+                var chat = message.Chat;
+                await botClient.SendTextMessageAsync(
+                    chat.Id,
+                    "***Не флудить!***",
+                    replyToMessageId: message.MessageId,
+                    parseMode: ParseMode.Markdown
+                    );
             }
         }
         private static Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
