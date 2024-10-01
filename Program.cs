@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Net.Http.Headers;
-using System.Threading.Channels;
-using Telegram.Bot;
+﻿using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -19,7 +16,7 @@ namespace DisclaimerBot
         static async Task Main()
         {
 
-            _botClient = new TelegramBotClient("7804364180:AAHuNzbZi7LIDI1bZ6wIDUAGQID6SP2t0Ss");
+            _botClient = new TelegramBotClient("---");
 
             _receiverOptions = new ReceiverOptions
             {
@@ -30,6 +27,7 @@ namespace DisclaimerBot
                 
                 ThrowPendingUpdates = true,
             };
+            
             await _botClient.SetMyCommandsAsync(
             [
                 new BotCommand { Command = "start", Description = "Запустить бота" },
@@ -67,7 +65,6 @@ namespace DisclaimerBot
                 Console.WriteLine(ex.ToString());
             }
         }
-        
         private static async Task SendMessage(ITelegramBotClient botClient, Message message, bool isShowLog = true)
         {
             if (message.SenderChat != null && message.SenderChat.Type == ChatType.Channel)
@@ -104,6 +101,12 @@ namespace DisclaimerBot
         {
             var chat = message.Chat;
             ChannelsTG XMLData = XMLHandler.ReadXML();
+            if(XMLData.Channels.Count() == 0)
+            {
+                ChannelTG channel = await CreateNewChannelTG(botClient, message.Chat);
+                XMLData.Channels.Add(channel);
+                XMLHandler.WriteXML(XMLData);
+            }
 
             ChannelTG ch = XMLData.Channels.Where(c => c.ChatID == chat.Id).First();
 
@@ -118,7 +121,6 @@ namespace DisclaimerBot
             }
             
         }
-
         private static async Task SendPrivateResponse(ITelegramBotClient botClient, Message message)
         {
             if(message.Text != null)
@@ -187,17 +189,34 @@ namespace DisclaimerBot
                             }
                             break;
                         }
+                    case "/set_new_disclaimer":
+                        {
+                            ChannelTG channel = await GetChannelId(botClient, message, message.Text.Split(' ').Skip(1).ToList());
+                            if(channel != null)
+                            {
+                                List<string> parts = message.Text.Split(' ').Skip(2).ToList();
+                                parts[0] = parts[0].Replace('\n', ' ');
+                                string disclamer = String.Join(" ", parts);
+                                channel.ChatDisclaimer = disclamer;
+                                XMLHandler.WriteXML(channel);
+
+                                await botClient.SendTextMessageAsync(message.Chat.Id,
+                                    $"Для чата {channel.ChatID} ({channel.ChatName}) был изменен дисклеймер!!",
+                                    parseMode: ParseMode.Markdown
+                                    );
+                                await botClient.SendTextMessageAsync(message.Chat.Id, $"{channel.ChatDisclaimer}", parseMode: ParseMode.Markdown);
+                            }
+                            break;
+                        }
                     default:
                         {
-                            await botClient.SendTextMessageAsync(message.Chat.Id, "Команда отсутствует(((", replyMarkup: new ReplyKeyboardRemove());
+                            await botClient.SendTextMessageAsync(message.Chat.Id, $"Команда {message.Text} отсутствует(((", parseMode: ParseMode.Markdown);
                             break;
                         }
                 }
                 
             }
         }
-
-       
         private static async Task<ChannelTG> GetChannelId(ITelegramBotClient botClient, Message message, List<string> paramsCommand)
         {
             if (paramsCommand.Count == 0)
@@ -275,20 +294,20 @@ namespace DisclaimerBot
                     if (newUser.IsBot && message.Chat.Type == ChatType.Supergroup && newUser.Id == botClient.BotId)
                     {
                         Console.WriteLine($"Бот {newUser.Username} был добавлен в группу!");
-
-                        ChatMember[] admins = await botClient.GetChatAdministratorsAsync(chatId: message.Chat.Id);
-
-                        List<User> users = [];
-                        foreach (var user in admins)
-                            users.Add(new User(user.User.Id, user.User.FirstName));
-
-                        ChannelTG сhannelTG = new(message.Chat.Title, message.Chat.Id, users, _disclaimer, false);
+                        ChannelTG сhannelTG = await CreateNewChannelTG(botClient, message.Chat);
                         XMLHandler.WriteXML(сhannelTG);
                     }
                 }
             }
         }
-        
+        private static async Task<ChannelTG> CreateNewChannelTG(ITelegramBotClient botClient, Chat chat)
+        {
+            ChatMember[] admins = await botClient.GetChatAdministratorsAsync(chat.Id);
+            List<User> users = [];
+            foreach (var user in admins)
+                users.Add(new User(user.User.Id, user.User.FirstName));
+            return new ChannelTG(chat.Title, chat.Id, users, _disclaimer, false);
+        }
         private static Task ErrorHandler(ITelegramBotClient botClient, Exception error, CancellationToken cancellationToken)
         {
            
