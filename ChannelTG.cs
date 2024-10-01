@@ -3,23 +3,27 @@
 namespace DisclaimerBot
 {
     [XmlRoot("сhannels")]
-    public class СhannelsTG
+    public class ChannelsTG
     {
         [XmlElement("сhannel")]
-        public List<СhannelTG> Channels;
+        public List<ChannelTG> Channels;
 
-        public СhannelsTG()
+        public ChannelsTG() =>  Channels = new List<ChannelTG> ();
+        public ChannelsTG(List<ChannelTG> channels) => Channels = channels;
+        public static ChannelsTG ChannelsAdminsInfo(ChannelsTG channels, long chat_id, List<User> users)
         {
-            Channels = new List<СhannelTG> ();
+            foreach (ChannelTG channel in channels.Channels)
+                if (channel.ChatID == chat_id)
+                    channel.ChatAdmins = users;
+            return channels;
         }
-        public СhannelsTG(List<СhannelTG> channels)
-        {
-            Channels = channels;
-        }
+
+        public static ChannelTG GetChannel(ChannelsTG channels, long chat_id)
+            => channels.Channels.Where(c => c.ChatID == chat_id).FirstOrDefault();
     }
 
     [XmlRoot("сhannel")]
-    public class СhannelTG
+    public class ChannelTG
     {
         [XmlElement("сhannel_name")]
         public string ChatName { get; set; }
@@ -32,8 +36,8 @@ namespace DisclaimerBot
         [XmlElement("channe_disclaimer_state")]
         public bool ChatDisclaimerState { get; set; }
 
-        public СhannelTG() { }
-        public СhannelTG(string chatlName, long chatID, List<User> chatAdmins, string chatDisclaimer, bool chatDisclaimerState)
+        public ChannelTG() { }
+        public ChannelTG(string chatlName, long chatID, List<User> chatAdmins, string chatDisclaimer, bool chatDisclaimerState)
         {
             ChatName = chatlName;
             ChatID = chatID;

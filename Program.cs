@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Threading.Channels;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -18,7 +19,7 @@ namespace DisclaimerBot
         static async Task Main(string[] args)
         {
 
-            _botClient = new TelegramBotClient("---");
+            _botClient = new TelegramBotClient("7804364180:AAHuNzbZi7LIDI1bZ6wIDUAGQID6SP2t0Ss");
 
             _receiverOptions = new ReceiverOptions
             {
@@ -33,8 +34,7 @@ namespace DisclaimerBot
             {
                 new BotCommand { Command = "start", Description = "Запустить бота" },
                 new BotCommand { Command = "help", Description = "Получить справку" },
-                new BotCommand { Command = "chats", Description = "Получаем информацию о всех моих каналах" },
-                new BotCommand { Command = "settings", Description = "Настройки" }
+                new BotCommand { Command = "chats", Description = "Получаем информацию о всех моих каналах" }
             });
             using var cts = new CancellationTokenSource();
 
@@ -84,7 +84,7 @@ namespace DisclaimerBot
                             }
                         default:
                             {
-                                string text = message.Caption == null ? "Текст публикации отцуцтвует" : message.Caption;
+                                string text = message.Caption == null ? "Текст публикации отсутствует" : message.Caption;
                                 log += $"Текст публикации {text} \n";
                                 break;
                             }
@@ -103,9 +103,9 @@ namespace DisclaimerBot
         private static async Task SendDisclaimer(ITelegramBotClient botClient, Message message)
         {
             var chat = message.Chat;
-            СhannelsTG XMLData = XMLHandler.ReadXML();
+            ChannelsTG XMLData = XMLHandler.ReadXML();
 
-            СhannelTG ch = XMLData.Channels.Where(c => c.ChatID == chat.Id).First();
+            ChannelTG ch = XMLData.Channels.Where(c => c.ChatID == chat.Id).First();
 
             if(ch != null && ch.ChatDisclaimerState == true)
             {
@@ -123,19 +123,19 @@ namespace DisclaimerBot
         {
             if(message.Text != null)
             {
-                string commqand = message.Text.Split(' ')[0].ToLower();
-                switch (commqand)
+                string command = message.Text.Split(' ')[0].ToLower(); 
+                switch (command)
                 {
                     case "/start":
                         {
-                            await botClient.SendTextMessageAsync(message.Chat.Id, "Привет я Дисклеймер бот, давай начем совместную работу!");
+                            await botClient.SendTextMessageAsync(message.Chat.Id, "Привет я Дисклеймер бот, давай начнем совместную работу!");
                             break;
                         }
                     case "/chats":
                         {
-                            СhannelsTG Data = XMLHandler.ReadXML();
+                            ChannelsTG Data = XMLHandler.ReadXML();
 
-                            List<СhannelTG> Сhannels = Data.Channels.Where(c => c.ChatAdmins.Count(a => a.UserId == message.From.Id) > 0).ToList();
+                            List<ChannelTG> Сhannels = Data.Channels.Where(c => c.ChatAdmins.Count(a => a.UserId == message.From.Id) > 0).ToList();
                             string chats = string.Join(' ', Сhannels.Select(c => "\n"+"***"+c.ChatName + "*** `" + c.ChatID + "`"));
                             await botClient.SendTextMessageAsync(message.Chat.Id,
                                 $"Вот все доступные чаты для модерации=> : {chats}",
@@ -143,6 +143,48 @@ namespace DisclaimerBot
                                 );
                            
                             
+                            break;
+                        }
+                    case "/get_disclaimer":
+                        {
+                            ChannelTG channel = await GetChannelId(botClient, message, message.Text.Split(' ').Skip(1).ToList());
+                            if (channel != null)
+                            {
+                                await botClient.SendTextMessageAsync(message.Chat.Id,
+                                $"Для чата {channel.ChatID} присвоен дисклеймер\n{channel.ChatDisclaimer}\nего статут активности: {channel.ChatDisclaimerState}",
+                                parseMode: ParseMode.Markdown
+                                );
+                            }
+                            break;
+                        }
+                    case "/disclaimer_on":
+                        {
+                            ChannelTG channel = await GetChannelId(botClient, message, message.Text.Split(' ').Skip(1).ToList());
+                            if (channel != null)
+                            {
+                                channel.ChatDisclaimerState = true;
+                                XMLHandler.WriteXML(channel);
+
+                                await botClient.SendTextMessageAsync(message.Chat.Id,
+                                $"Для чата {channel.ChatID} ({channel.ChatName}) был включен дисклеймер, теперь его увидят все!!!",
+                                parseMode: ParseMode.Markdown
+                                );
+                            }
+                            break;
+                        }
+                    case "/disclaimer_off":
+                        {
+                            ChannelTG channel = await GetChannelId(botClient, message, message.Text.Split(' ').Skip(1).ToList());
+                            if (channel != null)
+                            {
+                                channel.ChatDisclaimerState = false;
+                                XMLHandler.WriteXML(channel);
+
+                                await botClient.SendTextMessageAsync(message.Chat.Id,
+                                $"Для чата {channel.ChatID} ({channel.ChatName}) дисклеймер был выключен",
+                                parseMode: ParseMode.Markdown
+                                );
+                            }
                             break;
                         }
                     default:
@@ -156,7 +198,77 @@ namespace DisclaimerBot
         }
 
        
+        private static async Task<ChannelTG> GetChannelId(ITelegramBotClient botClient, Message message, List<string> paramsCommand)
+        {
+            if (paramsCommand.Count == 0)
+            {
 
+                await botClient.SendTextMessageAsync(message.Chat.Id,
+                    $"Неправильное количество параметров, ознакомьтесь с написанием данной команды через /help"
+                    );
+                return null;
+            }
+            else
+            {
+                ChannelsTG Data = XMLHandler.ReadXML();
+                long id;
+                bool isCorrect = Int64.TryParse(paramsCommand[0], out id);
+                if (!isCorrect)
+                {
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        $"Ошибка в написании команды проверьте правильность написнаия команды в /help",
+                        parseMode: ParseMode.Markdown
+                        );
+                    return null;
+                }
+                ChannelTG Сhannel = Data.Channels.Where(c => c.ChatID == id).FirstOrDefault();
+                if (Сhannel == null)
+                {
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        $"Я не знаю чат с такми ID {paramsCommand[0]}, еще раз добавьте бота в чат канала как администратора",
+                        parseMode: ParseMode.Markdown
+                        );
+                    return null;
+                }
+                ChatMember[] members;
+                try
+                {
+                    members = await botClient.GetChatAdministratorsAsync(id);
+
+                    members.Where(m => m.User.Id == message.From.Id).ToList();
+
+                    List<User> users = new List<User>();
+                    foreach (var user in members)
+                        users.Add(new User(user.User.Id, user.User.FirstName));
+                    
+                    ChannelsTG сhannelsTG = ChannelsTG.ChannelsAdminsInfo(XMLHandler.ReadXML(), id, users);
+                    XMLHandler.WriteXML(сhannelsTG);
+
+                    ChannelTG сhannelTG = ChannelsTG.GetChannel(сhannelsTG, id);
+
+
+
+                    if (users.Count(u => u.UserId == message.From.Id) == 0)
+                    {
+                        await botClient.SendTextMessageAsync(message.Chat.Id,
+                        $"Вы не являетесь администратором данного чата(",
+                        parseMode: ParseMode.Markdown
+                        );
+                        return null;
+                    }
+                    else
+                        return сhannelTG;
+                }
+                catch
+                {
+                    await botClient.SendTextMessageAsync(message.Chat.Id,
+                        $"Я не нашел такой чат с id ({id}) или же я в него не был добавлен(",
+                        parseMode: ParseMode.Markdown
+                        );
+                }
+                return null;
+            }
+        }
         private static async Task AddNewChannel(ITelegramBotClient botClient, Message message)
         {
             if (message.NewChatMembers != null)
@@ -173,7 +285,7 @@ namespace DisclaimerBot
                         foreach (var user in admins)
                             users.Add(new User(user.User.Id, user.User.FirstName));
 
-                        СhannelTG сhannelTG = new СhannelTG(message.Chat.Title, message.Chat.Id, users, _disclaimer, false);
+                        ChannelTG сhannelTG = new ChannelTG(message.Chat.Title, message.Chat.Id, users, _disclaimer, false);
                         XMLHandler.WriteXML(сhannelTG);
                     }
                 }

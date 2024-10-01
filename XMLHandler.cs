@@ -5,19 +5,19 @@ namespace DisclaimerBot
     internal static class XMLHandler
     {
         public static string path = "data.xml";
-        public static СhannelsTG ReadXML()
+        public static ChannelsTG ReadXML()
         {
-            XmlSerializer formatter = new XmlSerializer(typeof(СhannelsTG));
-            СhannelsTG channelInfo;
+            XmlSerializer formatter = new XmlSerializer(typeof(ChannelsTG));
+            ChannelsTG channelInfo;
             using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate))
             {
-                channelInfo = formatter.Deserialize(fs) as СhannelsTG;
+                channelInfo = formatter.Deserialize(fs) as ChannelsTG;
             }
             return channelInfo;
         }
-        public static void WriteXML(СhannelTG info)
+        public static void WriteXML(ChannelTG info)
         {
-            СhannelsTG temp = new СhannelsTG();
+            ChannelsTG temp = new ChannelsTG();
 
             if (System.IO.File.Exists(path))
             {
@@ -41,9 +41,17 @@ namespace DisclaimerBot
                 temp.Channels.Add(info);
             }
 
-            XmlSerializer serializer = new XmlSerializer(typeof(СhannelsTG));
-            using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate))
+            XmlSerializer serializer = new XmlSerializer(typeof(ChannelsTG));
+            using (FileStream fs = new FileStream(path, FileMode.Create))
                 serializer.Serialize(fs, temp);
+            Console.WriteLine("Объект записан в XML-документ.");
+        }
+
+        public static void WriteXML(ChannelsTG info)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(ChannelsTG));
+            using (FileStream fs = new FileStream(path, FileMode.Create))
+                serializer.Serialize(fs, info);
             Console.WriteLine("Объект записан в XML-документ.");
         }
     }
