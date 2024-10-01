@@ -9,7 +9,11 @@ namespace DisclaimerBot
         public long UserId { get; set; }
         [XmlElement ("tg_name")]
         public string TgName { get; set; }
-        public User() { }
+        public User() 
+        {
+            UserId = 0;
+            TgName = "";
+        }
         public User(long userId, string tgName)
         {
             UserId = userId;

@@ -8,7 +8,7 @@ namespace DisclaimerBot
         [XmlElement("сhannel")]
         public List<ChannelTG> Channels;
 
-        public ChannelsTG() =>  Channels = new List<ChannelTG> ();
+        public ChannelsTG() =>  Channels = [];
         public ChannelsTG(List<ChannelTG> channels) => Channels = channels;
         public static ChannelsTG ChannelsAdminsInfo(ChannelsTG channels, long chat_id, List<User> users)
         {
@@ -36,7 +36,14 @@ namespace DisclaimerBot
         [XmlElement("channe_disclaimer_state")]
         public bool ChatDisclaimerState { get; set; }
 
-        public ChannelTG() { }
+        public ChannelTG() 
+        {
+            ChatName = "";
+            ChatID = long.MinValue;
+            ChatAdmins = [];
+            ChatDisclaimer = "";
+            ChatDisclaimerState = false;
+        }
         public ChannelTG(string chatlName, long chatID, List<User> chatAdmins, string chatDisclaimer, bool chatDisclaimerState)
         {
             ChatName = chatlName;

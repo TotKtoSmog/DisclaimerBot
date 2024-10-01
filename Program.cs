@@ -15,27 +15,27 @@ namespace DisclaimerBot
         private static ITelegramBotClient _botClient;
 
         private static ReceiverOptions _receiverOptions;
-        private static string _disclaimer = "***Не флудить!***";
-        static async Task Main(string[] args)
+        private static readonly string _disclaimer = "***Не флудить!***";
+        static async Task Main()
         {
 
             _botClient = new TelegramBotClient("7804364180:AAHuNzbZi7LIDI1bZ6wIDUAGQID6SP2t0Ss");
 
             _receiverOptions = new ReceiverOptions
             {
-                AllowedUpdates = new[] 
-                {
+                AllowedUpdates =
+                [
                     UpdateType.Message
-                },
+                ],
                 
                 ThrowPendingUpdates = true,
             };
-            await _botClient.SetMyCommandsAsync(new[]
-            {
+            await _botClient.SetMyCommandsAsync(
+            [
                 new BotCommand { Command = "start", Description = "Запустить бота" },
                 new BotCommand { Command = "help", Description = "Получить справку" },
                 new BotCommand { Command = "chats", Description = "Получаем информацию о всех моих каналах" }
-            });
+            ]);
             using var cts = new CancellationTokenSource();
 
             _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions, cts.Token);
@@ -84,7 +84,7 @@ namespace DisclaimerBot
                             }
                         default:
                             {
-                                string text = message.Caption == null ? "Текст публикации отсутствует" : message.Caption;
+                                string text = message.Caption ?? "Текст публикации отсутствует";
                                 log += $"Текст публикации {text} \n";
                                 break;
                             }
@@ -135,7 +135,7 @@ namespace DisclaimerBot
                         {
                             ChannelsTG Data = XMLHandler.ReadXML();
 
-                            List<ChannelTG> Сhannels = Data.Channels.Where(c => c.ChatAdmins.Count(a => a.UserId == message.From.Id) > 0).ToList();
+                            List<ChannelTG> Сhannels = Data.Channels.Where(c => c.ChatAdmins.Any(a => a.UserId == message?.From?.Id)).ToList();
                             string chats = string.Join(' ', Сhannels.Select(c => "\n"+"***"+c.ChatName + "*** `" + c.ChatID + "`"));
                             await botClient.SendTextMessageAsync(message.Chat.Id,
                                 $"Вот все доступные чаты для модерации=> : {chats}",
@@ -211,8 +211,7 @@ namespace DisclaimerBot
             else
             {
                 ChannelsTG Data = XMLHandler.ReadXML();
-                long id;
-                bool isCorrect = Int64.TryParse(paramsCommand[0], out id);
+                bool isCorrect = Int64.TryParse(paramsCommand[0], out long id);
                 if (!isCorrect)
                 {
                     await botClient.SendTextMessageAsync(message.Chat.Id,
@@ -235,9 +234,7 @@ namespace DisclaimerBot
                 {
                     members = await botClient.GetChatAdministratorsAsync(id);
 
-                    members.Where(m => m.User.Id == message.From.Id).ToList();
-
-                    List<User> users = new List<User>();
+                    List<User> users = [];
                     foreach (var user in members)
                         users.Add(new User(user.User.Id, user.User.FirstName));
                     
@@ -248,7 +245,7 @@ namespace DisclaimerBot
 
 
 
-                    if (users.Count(u => u.UserId == message.From.Id) == 0)
+                    if (!users.Any(u => u.UserId == message?.From?.Id))
                     {
                         await botClient.SendTextMessageAsync(message.Chat.Id,
                         $"Вы не являетесь администратором данного чата(",
@@ -281,11 +278,11 @@ namespace DisclaimerBot
 
                         ChatMember[] admins = await botClient.GetChatAdministratorsAsync(chatId: message.Chat.Id);
 
-                        List<User> users = new List<User>();
+                        List<User> users = [];
                         foreach (var user in admins)
                             users.Add(new User(user.User.Id, user.User.FirstName));
 
-                        ChannelTG сhannelTG = new ChannelTG(message.Chat.Title, message.Chat.Id, users, _disclaimer, false);
+                        ChannelTG сhannelTG = new(message.Chat.Title, message.Chat.Id, users, _disclaimer, false);
                         XMLHandler.WriteXML(сhannelTG);
                     }
                 }
