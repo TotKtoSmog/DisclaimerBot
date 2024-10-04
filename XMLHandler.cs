@@ -39,17 +39,17 @@ namespace DisclaimerBot
             }
             if (!flag) temp.Channels.Add(info);
 
-            XmlSerializer serializer = new(typeof(ChannelsTG));
+            XmlSerializer serialize = new(typeof(ChannelsTG));
             using (FileStream fs = new(path, FileMode.Create))
-                serializer.Serialize(fs, temp);
+                serialize.Serialize(fs, temp);
             Console.WriteLine("Объект записан в XML-документ.");
         }
 
         public static void WriteXML(ChannelsTG info)
         {
-            XmlSerializer serializer = new(typeof(ChannelsTG));
+            XmlSerializer serialize = new(typeof(ChannelsTG));
             using (FileStream fs = new(path, FileMode.Create))
-                serializer.Serialize(fs, info);
+                serialize.Serialize(fs, info);
             Console.WriteLine("Объект записан в XML-документ.");
         }
     }
