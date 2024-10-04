@@ -132,6 +132,16 @@ namespace DisclaimerBot
                             await botClient.SendTextMessageAsync(message.Chat.Id, "Привет я Дисклеймер бот, давай начнем совместную работу!");
                             break;
                         }
+                    case "/help":
+                        {
+                            string help = "Команда ***/chats*** \\- возвращает все id и названия чатов, в которых присутствует бот, и в которых вы являетесь администратором\n" +
+                                "Команда ***/get\\_disclaimer id\\_чата*** выводит текущую информацию по дисклеймеру который присвоен чату \\(пример использования: ***/get\\_disclaimer id\\_чата***\\)\n" +
+                                "Команда ***/disclaimer\\_on id\\_чата*** включает отображение дисклеймера в чате\n" +
+                                "Команда ***/disclaimer\\_off id\\_чата*** выключает отображение дисклеймера в чате\n" +
+                                "Команда ***/set\\_new\\_disclaimer id\\_чата дисклеймер*** устанавливает новый дисклеймер для чата \\(примечание: дисклеймер для команды может вводится как после пробела после id\\_чата так, и с новой строчки\\)";
+                            await botClient.SendTextMessageAsync(message.Chat.Id, help, parseMode: ParseMode.MarkdownV2);    
+                            break;
+                        }
                     case "/chats":
                         {
                             ChannelsTG Data = XMLHandler.ReadXML();
