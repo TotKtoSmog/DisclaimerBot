@@ -26,13 +26,9 @@ namespace DisclaimerBot
                 
                 ThrowPendingUpdates = true,
             };
-            
-            await _botClient.SetMyCommandsAsync(
-            [
-                new BotCommand { Command = "start", Description = "Запустить бота" },
-                new BotCommand { Command = "help", Description = "Получить справку" },
-                new BotCommand { Command = "chats", Description = "Получаем информацию о всех моих каналах" }
-            ]);
+
+            await SetCommand(_botClient);
+
             using var cts = new CancellationTokenSource();
 
             _botClient.StartReceiving(UpdateHandler, ErrorHandler, _receiverOptions, cts.Token);
@@ -63,6 +59,25 @@ namespace DisclaimerBot
             {
                 Console.WriteLine(ex.ToString());
             }
+        }
+        private static async Task SetCommand(ITelegramBotClient botClient)
+        {
+            await botClient.SetMyCommandsAsync(
+            [
+                new BotCommand { Command = "start", Description = "Запустить бота" },
+                new BotCommand { Command = "help", Description = "Получить справку" },
+                new BotCommand { Command = "chats", Description = "Получаем информацию о всех моих каналах" }
+            ],
+            new BotCommandScopeAllPrivateChats()
+            );
+
+            await botClient.DeleteMyCommandsAsync(
+                new BotCommandScopeAllGroupChats()
+                );
+
+            await botClient.DeleteMyCommandsAsync(
+                new BotCommandScopeAllChatAdministrators()
+            );
         }
         private static async Task SendMessage(ITelegramBotClient botClient, Message message, bool isShowLog = true)
         {
